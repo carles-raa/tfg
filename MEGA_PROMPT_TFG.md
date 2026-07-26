@@ -51,7 +51,7 @@ respuesta automática básica (reinicio de contenedor + notificación).
 ```
 tfg-monitorizacion/
 ├── agente/                  # Módulo 1: monitorización activa
-├── motor-reglas/             # Módulo 3: correlación y severidad
+├── motor-reglas/             # Módulo 3: correlación, severidad y análisis de logs
 ├── notificaciones/           # Telegram, email
 ├── respuesta-automatica/     # Módulo 4: acciones correctivas
 ├── infra/
@@ -122,6 +122,23 @@ central a defender ante el tribunal, no lo simplifiques a alertas sueltas.
 Guarda cada alerta en MySQL (tabla `incidencias`: id, servicio, severidad, causa_probable,
 timestamp, estado [abierta/resuelta]).
 
+**Análisis de logs (también parte del Módulo 3, objetivo explícito del profesor — no lo dejes solo
+como script de prueba puntual de la Fase 4):**
+
+- Crea `motor-reglas/lector_logs.py`: lee periódicamente (usando Docker SDK, `container.logs()`)
+  los logs de los contenedores configurados en `motor-reglas/reglas.yml` (lista de nombres de
+  contenedor a vigilar).
+- Cuenta apariciones de patrones configurables (por defecto: `ERROR`, `timeout`,
+  `connection refused`, `database unavailable`) en una ventana de tiempo deslizante (ej. últimos
+  5 minutos).
+- Nueva regla 7: si la frecuencia de un patrón supera un umbral configurable en esa ventana →
+  alerta (severidad según patrón: `connection refused`/`database unavailable` → crítica; `ERROR`
+  genérico/`timeout` → advertencia).
+- Esta señal se combina con las demás en la misma ventana de tiempo igual que las reglas 5 y 6
+  (ej. errores en logs + CPU alta → misma alerta consolidada, no una alerta aparte).
+- El caso 5 de la Fase 4 (`caso5_errores_logs.py`) pasa a ser la prueba de validación de esta
+  capacidad ya existente, no el único sitio donde existe.
+
 ---
 
 ## FASE 3 (días 11-15): Notificaciones + Respuesta automática + API/panel
@@ -141,6 +158,11 @@ timestamp, estado [abierta/resuelta]).
 - Endpoint simple `GET /incidencias` (con filtro por severidad/estado) y `GET /incidencias/{id}`.
   No hace falta frontend propio — esto es para consulta y para poder enseñarlo con `curl` o Swagger
   UI (FastAPI la genera sola en `/docs`) durante la defensa.
+- Endpoint `GET /incidencias/{id}/informe`: genera un **informe básico post-incidente** en texto
+  plano/markdown (no PDF, no hace falta más para el alcance de este TFG) con: servicio afectado,
+  severidad, causa probable, timestamp de apertura y de resolución (si la tiene), duración del
+  incidente, y los checks/métricas relevantes que dispararon la alerta en esa ventana de tiempo.
+  Es el objetivo "generación de informe básico" que pide el profesor en el alcance recomendado.
 
 ---
 
