@@ -34,6 +34,15 @@ agente_check_estado{nombre_check="ping-demo-web",tipo="ping"} 2.0
 
 Convención de valores: `0 = OK`, `1 = DEGRADADO`, `2 = CAÍDO`.
 
+## 3. Captura de Prometheus
+
+![Gráfica de Prometheus mostrando el salto de OK (0) a CAÍDO (2) y la vuelta a OK al reiniciar demo-web](fase1_captura_prometheus.png)
+
+Consulta `agente_check_estado{nombre_check="demo-web-http"}` en `http://localhost:9090/graph`.
+Se ve claramente el salto a 2.0 cuando se detiene `demo-web`, y la vuelta a 0.0 en cuanto se
+reinicia el contenedor — confirma que la detección y la recuperación se reflejan en Prometheus
+en tiempo real.
+
 ## Conclusión
 
 El agente detecta la caída del servicio en el siguiente ciclo de comprobación
