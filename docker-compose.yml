@@ -79,6 +79,26 @@ services:
     ports:
       - "8081:80"
 
+  agente:
+    build: ./agente
+    container_name: tfg-agente
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-monitorizacion}
+      MYSQL_USER: ${MYSQL_USER:-monitor}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-monitor}
+    volumes:
+      - ./agente/config.yml:/app/config.yml:ro
+    ports:
+      - "9101:9101"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      demo-web:
+        condition: service_started
+
 volumes:
   mysql-data:
   prometheus-data:

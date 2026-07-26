@@ -40,3 +40,38 @@ separado (cuánta CPU/memoria usa cada uno). Juntos dan visibilidad completa: m�
 **demo-web (nginx) como servicio de prueba** → un servidor web mínimo que se usa como "víctima" en
 los casos de validación: se puede parar, ralentizar o saturar de forma controlada para comprobar
 que el sistema de monitorización lo detecta correctamente.
+
+## Fase 1 — Agente de monitorización activa
+
+**Monitorización activa** → en vez de esperar a que un servicio avise de que falla, el agente
+"pregunta" él mismo cada cierto tiempo (cada 30s) si cada servicio responde bien. Es la diferencia
+entre esperar una llamada de auxilio y llamar tú para comprobar que todo va bien.
+
+**Los 5 tipos de check del agente** → HTTP (¿responde la web y con qué código y tiempo?), TCP
+(¿se puede abrir una conexión a un puerto?), DNS (¿se resuelve un dominio a una IP y en cuánto
+tiempo?), certificado SSL (¿cuántos días quedan hasta que caduque el certificado de seguridad de
+un dominio?), y ping (¿cuánto tarda un paquete en ir y volver a un host?).
+
+**Tres estados en vez de un booleano (OK/DEGRADADO/CAÍDO)** → un simple "funciona o no funciona"
+no distingue entre un servicio totalmente caído y uno que responde pero muy lento. Con tres
+estados el sistema puede avisar de una degradación progresiva antes de que se convierta en una
+caída total, que es justo el objetivo central del TFG (no solo detectar caídas, sino
+degradaciones).
+
+**`agente/config.yml`** → los servicios a vigilar y sus umbrales (ej. "por encima de 300ms se
+considera degradado") están en un archivo de configuración separado del código Python. Así se
+puede añadir o ajustar un check sin tocar el programa, y queda documentado en un solo sitio.
+
+**`prometheus_client` y el endpoint `/metrics`** → el agente expone sus resultados en una URL
+(`/metrics`) con un formato de texto estándar que Prometheus entiende y "scrapea" (lee) cada
+15 segundos automáticamente. Es el mismo mecanismo que usan Node Exporter y cAdvisor, así que
+Prometheus trata al agente como una fuente de métricas más.
+
+**PyMySQL + `cryptography`** → la librería usada para conectar el agente (Python) a MySQL. MySQL 8
+usa por defecto un método de login (`caching_sha2_password`) que necesita cifrado RSA, y para eso
+PyMySQL necesita el paquete `cryptography` instalado; si falta, la conexión falla con un error de
+autenticación aunque el usuario y la contraseña sean correctos.
+
+**ping3 (ping en Python puro)** → en vez de llamar al comando `ping` del sistema operativo, se usa
+una librería que crea directamente el paquete de red en Python. Evita depender de que el binario
+`ping` esté instalado dentro del contenedor y simplifica el `Dockerfile`.

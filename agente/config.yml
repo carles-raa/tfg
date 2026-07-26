@@ -1,0 +1,43 @@
+# Configuración del agente de monitorización activa.
+# intervalo_global_segundos: cada cuánto se repite la ronda completa de checks.
+intervalo_global_segundos: 30
+
+checks:
+  # 1. HTTP/HTTPS: comprueba código de respuesta y tiempo de respuesta.
+  - nombre: demo-web-http
+    tipo: http
+    target: http://demo-web:80
+    codigo_esperado: 200
+    timeout_segundos: 3
+    umbral_latencia_degradado_ms: 300
+    umbral_latencia_caido_ms: 3000
+
+  # 2. Puerto TCP: conexión simple a host:puerto.
+  - nombre: demo-web-tcp
+    tipo: tcp
+    host: demo-web
+    puerto: 80
+    timeout_segundos: 3
+    umbral_latencia_degradado_ms: 200
+
+  # 3. DNS: resolución de un dominio y tiempo que tarda.
+  - nombre: dns-google
+    tipo: dns
+    dominio: google.com
+    timeout_segundos: 3
+    umbral_resolucion_degradado_ms: 200
+
+  # 4. Certificado SSL: días restantes hasta caducidad.
+  - nombre: cert-google
+    tipo: ssl
+    dominio: google.com
+    puerto: 443
+    timeout_segundos: 5
+    umbral_dias_advertencia: 30
+
+  # 5. Latencia (ping): usa ping3 para medir RTT.
+  - nombre: ping-demo-web
+    tipo: ping
+    host: demo-web
+    timeout_segundos: 3
+    umbral_latencia_degradado_ms: 100

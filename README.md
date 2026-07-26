@@ -27,9 +27,31 @@ Esto levanta:
 | Node Exporter | 9100         | Métricas del sistema (CPU, memoria, disco) |
 | cAdvisor      | 8080         | Métricas de contenedores Docker |
 | demo-web      | 8081         | Servicio web de prueba (nginx) para simular incidentes |
+| Agente        | 9101         | Métricas del agente de monitorización (`/metrics`) |
 
 Para pararlo todo: `docker compose down` (añade `-v` solo si quieres borrar también los datos guardados).
 
+## Estado del proyecto
+
+**Fase 1 completada:** agente de monitorización activa (`agente/`). Comprueba cada 30s (configurable
+en `agente/config.yml`) el estado de los servicios definidos mediante 5 tipos de check: HTTP, TCP,
+DNS, certificado SSL y ping. Cada check se clasifica como `OK`, `DEGRADADO` o `CAÍDO`, se guarda en
+MySQL (tabla `checks_resultado`) y se expone como métrica Prometheus en `http://localhost:9101/metrics`.
+
+Evidencia de que detecta caídas reales en `docs/fase1_evidencia_caida_demo-web.md`.
+
+Para ver los checks en vivo:
+```bash
+curl http://localhost:9101/metrics | grep agente_check
+```
+
+Para ver los resultados guardados en MySQL:
+```bash
+docker compose exec mysql mysql -u monitor -pmonitor monitorizacion \
+  -e "SELECT * FROM checks_resultado ORDER BY id DESC LIMIT 10;"
+```
+
 ## Próximos pasos
 
-Ver `MEGA_PROMPT_TFG.md` para el plan completo por fases.
+Ver `MEGA_PROMPT_TFG.md` para el plan completo por fases. Siguiente: Fase 2 (dashboard de Grafana +
+motor de reglas de correlación).
