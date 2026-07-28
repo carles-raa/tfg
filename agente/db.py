@@ -11,6 +11,7 @@ def _config_conexion():
         user=os.environ.get("MYSQL_USER", "monitor"),
         password=os.environ.get("MYSQL_PASSWORD", "monitor"),
         database=os.environ.get("MYSQL_DATABASE", "monitorizacion"),
+        charset="utf8mb4",
         autocommit=True,
     )
 
@@ -38,18 +39,24 @@ def inicializar_esquema(conexion):
                 estado VARCHAR(20) NOT NULL,
                 latencia_ms FLOAT,
                 detalle TEXT,
+                valor_extra FLOAT,
                 timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
+        try:
+            cursor.execute("ALTER TABLE checks_resultado ADD COLUMN valor_extra FLOAT")
+        except pymysql.err.OperationalError as error:
+            if error.args[0] != 1060:  # 1060 = Duplicate column name (ya existía)
+                raise
 
 
-def guardar_resultado(conexion, nombre_check, tipo, estado, latencia_ms, detalle):
+def guardar_resultado(conexion, nombre_check, tipo, estado, latencia_ms, detalle, valor_extra=None):
     with conexion.cursor() as cursor:
         cursor.execute(
             """
-            INSERT INTO checks_resultado (nombre_check, tipo, estado, latencia_ms, detalle)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO checks_resultado (nombre_check, tipo, estado, latencia_ms, detalle, valor_extra)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """,
-            (nombre_check, tipo, estado, latencia_ms, detalle),
+            (nombre_check, tipo, estado, latencia_ms, detalle, valor_extra),
         )

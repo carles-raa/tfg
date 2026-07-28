@@ -1,0 +1,61 @@
+# Reglas fijas del motor de correlación (Módulo 3). Nada de esto está hardcodeado en Python:
+# cualquier ajuste de umbrales o de qué vigilar se hace aquí.
+
+intervalo_evaluacion_segundos: 30
+
+# Regla 1: servicio caído N comprobaciones consecutivas -> alerta crítica.
+caida_consecutiva:
+  demo-web-http: 3
+  demo-web-tcp: 3
+
+# Regla 2: certificado SSL caduca en menos de X días -> alerta advertencia.
+checks_ssl:
+  - cert-google
+umbral_dias_ssl_advertencia: 7
+
+# Regla 3: latencia media por encima del umbral durante una ventana -> alerta advertencia.
+ventana_latencia_minutos: 10
+umbral_latencia_ms:
+  demo-web-http: 300
+
+# Regla 4: contenedor reiniciado más de X veces en una ventana -> alerta crítica.
+contenedores_vigilados:
+  - tfg-demo-web
+ventana_reinicios_minutos: 5
+umbral_reinicios: 3
+
+# Señal para la regla 5 (se combina con latencia_alta): % de los últimos pings fallidos.
+checks_ping_perdida:
+  - ping-demo-web
+ventana_perdida_paquetes_num_checks: 5
+umbral_perdida_paquetes_pct: 40
+
+# Señal para la regla 6 (se combina con cpu_alta): último check HTTP con código 5xx.
+checks_http_5xx:
+  - demo-web-http
+umbral_cpu_alta_pct: 80
+
+# Regla 7: análisis de logs de los contenedores vigilados (misma lista de arriba).
+ventana_log_minutos: 5
+umbral_ocurrencias_log: 5
+patrones_log:
+  - patron: "connection refused"
+    severidad: critica
+  - patron: "database unavailable"
+    severidad: critica
+  - patron: "ERROR"
+    severidad: advertencia
+  - patron: "timeout"
+    severidad: advertencia
+
+# Reglas 5 y 6: cuando estas señales coinciden en la misma ronda de evaluación, se genera
+# UNA única incidencia consolidada en vez de una por señal.
+correlaciones:
+  - nombre: problema_red
+    combina: [latencia_alta, perdida_paquetes]
+    causa_probable: "Posible problema de red"
+    severidad: advertencia
+  - nombre: saturacion_servidor
+    combina: [error_5xx, cpu_alta]
+    causa_probable: "Posible saturación del servidor"
+    severidad: critica

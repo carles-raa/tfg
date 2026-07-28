@@ -34,12 +34,12 @@ def ejecutar_ronda(conexion, checks):
             continue
 
         try:
-            estado, latencia_ms, detalle = chequeador(check_cfg)
+            estado, latencia_ms, detalle, valor_extra = chequeador(check_cfg)
         except Exception as error:
-            estado, latencia_ms, detalle = "CAIDO", None, f"error inesperado: {error}"
+            estado, latencia_ms, detalle, valor_extra = "CAIDO", None, f"error inesperado: {error}", None
 
         print(f"[{nombre}] {estado} - {detalle}")
-        db.guardar_resultado(conexion, nombre, tipo, estado, latencia_ms, detalle)
+        db.guardar_resultado(conexion, nombre, tipo, estado, latencia_ms, detalle, valor_extra)
         metrics.actualizar_metricas(nombre, tipo, estado, latencia_ms)
 
 

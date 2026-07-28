@@ -14,11 +14,11 @@ def check_dns(cfg):
     try:
         ip = socket.gethostbyname(dominio)
     except socket.error as error:
-        return CAIDO, None, f"no se pudo resolver {dominio}: {error}"
+        return CAIDO, None, f"no se pudo resolver {dominio}: {error}", None
     finally:
         socket.setdefaulttimeout(None)
 
     latencia_ms = (time.monotonic() - inicio) * 1000
     if latencia_ms >= umbral_degradado:
-        return DEGRADADO, latencia_ms, f"resolución lenta ({latencia_ms:.0f}ms) -> {ip}"
-    return OK, latencia_ms, f"resuelto a {ip} en {latencia_ms:.0f}ms"
+        return DEGRADADO, latencia_ms, f"resolución lenta ({latencia_ms:.0f}ms) -> {ip}", None
+    return OK, latencia_ms, f"resuelto a {ip} en {latencia_ms:.0f}ms", None

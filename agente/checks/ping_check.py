@@ -11,12 +11,12 @@ def check_ping(cfg):
     try:
         latencia_seg = ping(host, timeout=timeout, unit="s")
     except Exception as error:
-        return CAIDO, None, f"error al hacer ping a {host}: {error}"
+        return CAIDO, None, f"error al hacer ping a {host}: {error}", None
 
     if latencia_seg is None or latencia_seg is False:
-        return CAIDO, None, f"{host} no responde al ping"
+        return CAIDO, None, f"{host} no responde al ping", None
 
     latencia_ms = latencia_seg * 1000
     if latencia_ms >= umbral_degradado:
-        return DEGRADADO, latencia_ms, f"latencia alta: {latencia_ms:.0f}ms"
-    return OK, latencia_ms, f"ping OK en {latencia_ms:.0f}ms"
+        return DEGRADADO, latencia_ms, f"latencia alta: {latencia_ms:.0f}ms", None
+    return OK, latencia_ms, f"ping OK en {latencia_ms:.0f}ms", None

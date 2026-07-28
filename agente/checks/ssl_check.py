@@ -19,14 +19,14 @@ def check_ssl(cfg):
             with contexto.wrap_socket(sock, server_hostname=dominio) as tls:
                 cert = tls.getpeercert()
     except (OSError, ssl.SSLError) as error:
-        return CAIDO, None, f"no se pudo comprobar el certificado de {dominio}: {error}"
+        return CAIDO, None, f"no se pudo comprobar el certificado de {dominio}: {error}", None
 
     latencia_ms = (time.monotonic() - inicio) * 1000
     fecha_caducidad = datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z").replace(tzinfo=timezone.utc)
     dias_restantes = (fecha_caducidad - datetime.now(timezone.utc)).days
 
     if dias_restantes < 0:
-        return CAIDO, latencia_ms, f"certificado caducado hace {abs(dias_restantes)} días"
+        return CAIDO, latencia_ms, f"certificado caducado hace {abs(dias_restantes)} días", dias_restantes
     if dias_restantes < umbral_dias_advertencia:
-        return DEGRADADO, latencia_ms, f"certificado caduca en {dias_restantes} días"
-    return OK, latencia_ms, f"certificado válido, caduca en {dias_restantes} días"
+        return DEGRADADO, latencia_ms, f"certificado caduca en {dias_restantes} días", dias_restantes
+    return OK, latencia_ms, f"certificado válido, caduca en {dias_restantes} días", dias_restantes

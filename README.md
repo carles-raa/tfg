@@ -5,9 +5,7 @@ progresivas de servicios (latencia alta, errores intermitentes, certificados a p
 saturación de recursos), correlaciona eventos relacionados en una sola alerta con causa probable,
 y ejecuta una respuesta automática básica (reinicio de contenedor + notificación).
 
-## Estado del proyecto
-
-En construcción. Ver `docs/GLOSARIO_DEFENSA.md` para las decisiones de diseño tomadas hasta ahora.
+Ver `docs/GLOSARIO_DEFENSA.md` para las decisiones de diseño tomadas hasta ahora.
 
 ## Arranque de la infraestructura base
 
@@ -47,11 +45,29 @@ curl http://localhost:9101/metrics | grep agente_check
 
 Para ver los resultados guardados en MySQL:
 ```bash
-docker compose exec mysql mysql -u monitor -pmonitor monitorizacion \
+docker compose exec mysql mysql --default-character-set=utf8mb4 -u monitor -pmonitor monitorizacion \
   -e "SELECT * FROM checks_resultado ORDER BY id DESC LIMIT 10;"
+```
+
+**Fase 2 completada:** dashboard de Grafana provisionado automáticamente (`infra/grafana/dashboards/`)
+con estado de checks, CPU/memoria del sistema y CPU/memoria por contenedor. Motor de reglas
+(`motor-reglas/`) que cada 30s evalúa 7 reglas fijas (definidas en `motor-reglas/reglas.yml`,
+no en código): caída consecutiva, certificado SSL próximo a caducar, latencia media alta,
+reinicios frecuentes de contenedor, pérdida de paquetes + latencia (correlacionadas), errores
+5xx + CPU alta (correlacionadas), y patrones de error recurrentes en logs. Guarda cada incidencia
+en MySQL (tabla `incidencias`) y la resuelve automáticamente cuando la condición desaparece.
+
+Evidencia en `docs/fase2_evidencia_motor_reglas.md`.
+
+Dashboard: `http://localhost:3000` (admin/admin) → "TFG - Monitorización de servicios".
+
+Para ver las incidencias abiertas:
+```bash
+docker compose exec mysql mysql --default-character-set=utf8mb4 -u monitor -pmonitor monitorizacion \
+  -e "SELECT * FROM incidencias WHERE estado='abierta';"
 ```
 
 ## Próximos pasos
 
-Ver `MEGA_PROMPT_TFG.md` para el plan completo por fases. Siguiente: Fase 2 (dashboard de Grafana +
-motor de reglas de correlación).
+Ver `MEGA_PROMPT_TFG.md` para el plan completo por fases. Siguiente: Fase 3 (notificaciones por
+Telegram, respuesta automática y panel FastAPI).

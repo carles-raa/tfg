@@ -99,6 +99,28 @@ services:
       demo-web:
         condition: service_started
 
+  motor-reglas:
+    build: ./motor-reglas
+    container_name: tfg-motor-reglas
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-monitorizacion}
+      MYSQL_USER: ${MYSQL_USER:-monitor}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-monitor}
+      PROMETHEUS_URL: http://prometheus:9090
+    volumes:
+      - ./motor-reglas/reglas.yml:/app/reglas.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+      agente:
+        condition: service_started
+
 volumes:
   mysql-data:
   prometheus-data:

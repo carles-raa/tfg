@@ -16,14 +16,15 @@ def check_http(cfg):
     try:
         respuesta = requests.get(target, timeout=timeout)
     except requests.RequestException as error:
-        return CAIDO, None, f"error de conexión: {error}"
+        return CAIDO, None, f"error de conexión: {error}", None
 
     latencia_ms = (time.monotonic() - inicio) * 1000
+    codigo = respuesta.status_code
 
-    if respuesta.status_code != codigo_esperado:
-        return CAIDO, latencia_ms, f"código {respuesta.status_code}, se esperaba {codigo_esperado}"
+    if codigo != codigo_esperado:
+        return CAIDO, latencia_ms, f"código {codigo}, se esperaba {codigo_esperado}", codigo
     if latencia_ms >= umbral_caido:
-        return CAIDO, latencia_ms, f"latencia {latencia_ms:.0f}ms >= umbral caído {umbral_caido}ms"
+        return CAIDO, latencia_ms, f"latencia {latencia_ms:.0f}ms >= umbral caído {umbral_caido}ms", codigo
     if latencia_ms >= umbral_degradado:
-        return DEGRADADO, latencia_ms, f"latencia {latencia_ms:.0f}ms >= umbral degradado {umbral_degradado}ms"
-    return OK, latencia_ms, f"código {respuesta.status_code}, latencia {latencia_ms:.0f}ms"
+        return DEGRADADO, latencia_ms, f"latencia {latencia_ms:.0f}ms >= umbral degradado {umbral_degradado}ms", codigo
+    return OK, latencia_ms, f"código {codigo}, latencia {latencia_ms:.0f}ms", codigo
