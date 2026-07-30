@@ -130,3 +130,57 @@ depurar problemas en producción.
 defecto una codificación antigua (`latin1`) para hablar con MySQL, lo que corrompe cualquier
 acento o carácter especial guardado (ej. "días" se guardaba mal). Especificar `utf8mb4`
 explícitamente asegura que el español con tildes se guarda y se lee correctamente.
+
+## Fase 3 — Notificaciones, respuesta automática y panel
+
+**Bot de Telegram** → un "usuario automático" dentro de Telegram que un programa controla por
+código en vez de una persona escribiendo a mano. Se crea hablando con **@BotFather** (el bot
+oficial de Telegram para crear otros bots), que da un **token** — una contraseña larga que
+identifica al bot ante la API de Telegram. Un bot no puede escribir primero a nadie: hace falta
+que el usuario le escriba una vez para "abrir" la conversación antes de que el bot pueda
+responder.
+
+**`chat_id`** → el número que identifica de forma única la conversación (chat) entre el usuario
+y el bot. El programa lo necesita para saber a quién enviarle cada mensaje; se obtiene
+consultando el endpoint `getUpdates` de la API de Telegram después de que el usuario le haya
+escrito al bot al menos una vez.
+
+**Notificaciones desacopladas de la base de datos, no del código** → `notificaciones/` es un
+servicio Docker totalmente aparte del motor de reglas: no se llaman entre sí directamente, sino
+que `notificaciones/` vigila la tabla `incidencias` cada 10s y manda un mensaje la primera vez que
+ve una incidencia nueva o resuelta (usando las columnas `notificado_apertura` /
+`notificado_resolucion` para no repetir el mismo aviso). Esto permite que cada módulo se pueda
+reiniciar, fallar o desplegarse por separado sin que el resto del sistema se entere.
+
+**Modo "simulado" sin credenciales** → si no hay `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`
+configurados (archivo `.env` vacío), el sistema no falla: simplemente imprime el mensaje que
+habría enviado por la consola del contenedor. Esto permite desarrollar y probar toda la lógica de
+alertas sin depender de tener un bot real configurado desde el primer momento.
+
+**`respuesta_intentada`** → columna añadida a `incidencias` para asegurar que cada incidencia
+solo dispara **un** intento de reinicio automático, no uno por cada ronda de 15s mientras siga
+abierta. Es el mismo patrón que `notificado_apertura`/`notificado_resolucion`: una bandera que
+evita repetir una acción ya hecha.
+
+**Docker SDK con acceso de escritura al socket** → a diferencia del motor de reglas (que monta
+`/var/run/docker.sock` en modo solo lectura porque solo consulta), `respuesta-automatica/`
+necesita permiso de escritura sobre el socket porque sí modifica el estado de un contenedor
+(`container.restart()`). Es el único módulo de todo el sistema con esa capacidad, y solo actúa
+sobre los contenedores que aparecen explícitamente listados en `respuesta-automatica/config.yml`.
+
+**Deduplicar reinicios por contenedor, no por incidencia** → un mismo contenedor puede fallar
+varios checks a la vez (ej. el check HTTP y el check TCP del mismo servicio), generando varias
+incidencias independientes que apuntan al mismo contenedor. Sin cuidado, el sistema lo reiniciaría
+una vez por cada incidencia. La solución fue llevar la cuenta de qué contenedores ya se
+reiniciaron en la ronda de evaluación actual, y no repetir el reinicio si ya se hizo por otra
+incidencia relacionada.
+
+**Informe post-incidente (`GET /incidencias/{id}/informe`)** → un resumen en texto plano de una
+incidencia ya cerrada (o abierta): cuándo empezó, cuánto duró, cuál fue la causa probable, y qué
+checks concretos (con su detalle) se dispararon en la ventana de tiempo del incidente. Es la forma
+de "explicar lo ocurrido" sin tener que consultar la base de datos a mano.
+
+**FastAPI y `/docs` automático** → FastAPI es un framework de Python para crear APIs web. Su
+ventaja para este TFG es que genera solo, a partir del propio código, una página interactiva
+(`/docs`, Swagger UI) donde se puede probar cada endpoint desde el navegador sin necesidad de
+`curl` — útil para enseñarlo en la defensa oral.

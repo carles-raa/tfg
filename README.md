@@ -26,8 +26,29 @@ Esto levanta:
 | cAdvisor      | 8080         | Métricas de contenedores Docker |
 | demo-web      | 8081         | Servicio web de prueba (nginx) para simular incidentes |
 | Agente        | 9101         | Métricas del agente de monitorización (`/metrics`) |
+| API           | 8000         | Panel de incidencias (`/docs` para la interfaz Swagger) |
 
 Para pararlo todo: `docker compose down` (añade `-v` solo si quieres borrar también los datos guardados).
+
+### Notificaciones por Telegram
+
+Copia `.env.example` a `.env` (nunca se sube al repo) y rellena:
+
+```
+TELEGRAM_BOT_TOKEN=tu_token
+TELEGRAM_CHAT_ID=tu_chat_id
+```
+
+Cómo conseguirlos:
+1. Habla con **@BotFather** en Telegram y envíale `/newbot`. Sigue sus instrucciones (nombre +
+   username terminado en `bot`) y te dará el **token**.
+2. Busca tu bot recién creado por su username y mándale cualquier mensaje (ej. "hola") — un bot
+   no puede escribirte primero, así que hace falta abrir la conversación desde tu lado.
+3. Visita `https://api.telegram.org/bot<TU_TOKEN>/getUpdates` en el navegador: ahí aparece
+   `"chat":{"id":...}` — ese número es tu **chat_id**.
+
+Si `.env` no está configurado, el sistema sigue funcionando: simplemente imprime en los logs del
+contenedor el mensaje que habría enviado, en vez de mandarlo de verdad.
 
 ## Estado del proyecto
 
@@ -67,7 +88,23 @@ docker compose exec mysql mysql --default-character-set=utf8mb4 -u monitor -pmon
   -e "SELECT * FROM incidencias WHERE estado='abierta';"
 ```
 
+**Fase 3 completada:** notificaciones por Telegram (`notificaciones/`) para cada incidencia nueva
+y resuelta; respuesta automática (`respuesta-automatica/`) que reinicia vía Docker SDK el
+contenedor asociado a una incidencia de caída, verifica en 30s si se recuperó (notifica éxito) o
+escala como "requiere intervención manual" si no; panel FastAPI (`api/`) con `GET /incidencias`
+(filtrable por severidad/estado), `GET /incidencias/{id}` y `GET /incidencias/{id}/informe`
+(informe post-incidente en texto plano).
+
+Evidencia en `docs/fase3_evidencia_notificaciones_respuesta.md`.
+
+Para consultar el panel:
+```bash
+curl http://localhost:8000/incidencias
+curl http://localhost:8000/incidencias/1/informe
+```
+O abre `http://localhost:8000/docs` para la interfaz Swagger interactiva.
+
 ## Próximos pasos
 
-Ver `MEGA_PROMPT_TFG.md` para el plan completo por fases. Siguiente: Fase 3 (notificaciones por
-Telegram, respuesta automática y panel FastAPI).
+Ver `MEGA_PROMPT_TFG.md` para el plan completo por fases. Siguiente: Fase 4 (los 5 casos de
+validación con evidencia capturada).

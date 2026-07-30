@@ -1,0 +1,14 @@
+# Qué tipos de incidencia disparan un intento de reinicio automático, y a qué contenedor
+# corresponde cada servicio/check. Nada de esto está hardcodeado en Python.
+
+intervalo_segundos: 15
+espera_tras_reinicio_segundos: 30
+
+tipos_regla_que_disparan_reinicio:
+  - caida_consecutiva
+  - reinicio_frecuente
+
+contenedor_por_servicio:
+  demo-web-http: tfg-demo-web
+  demo-web-tcp: tfg-demo-web
+  tfg-demo-web: tfg-demo-web
